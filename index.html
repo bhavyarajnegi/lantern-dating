@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lantern Dating</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@600;700&family=Figtree:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout idea: a phone-width app column centered on a quiet backdrop; bottom tab bar; one card at a time. */
+:root{
+  --bg:#eef1f4; --surface:#ffffff; --ink:#14202b; --muted:#5d6b78; --line:#dde3e9;
+  --accent:#d63a72; --accent-ink:#ffffff; --teal:#1c7385; --good:#1d8a5a; --warn:#b4570a;
+  --display:"Bricolage Grotesque", "Segoe UI", system-ui, sans-serif;
+  --body:"Figtree", "Segoe UI", system-ui, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0e151c; --surface:#18222c; --ink:#eaf0f5; --muted:#9aa9b6; --line:#2a3744;
+    --accent:#ff6a9a; --accent-ink:#1a0b13; --teal:#5cc1d6; --good:#4cd59b; --warn:#f0a35c;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0e151c; --surface:#18222c; --ink:#eaf0f5; --muted:#9aa9b6; --line:#2a3744;
+  --accent:#ff6a9a; --accent-ink:#1a0b13; --teal:#5cc1d6; --good:#4cd59b; --warn:#f0a35c;
+  color-scheme: dark;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--ink);font-family:var(--body);font-size:16px;line-height:1.45}
+button,input,textarea,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--teal);outline-offset:2px}
+h1,h2,h3{font-family:var(--display);margin:0;text-wrap:balance;letter-spacing:-.01em}
+
+#app{max-width:480px;height:100%;margin:0 auto;display:flex;flex-direction:column;background:var(--bg);position:relative}
+@media (min-width:520px){#app{border-left:1px solid var(--line);border-right:1px solid var(--line)}}
+header.top{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;gap:12px}
+.brand{font-family:var(--display);font-weight:700;font-size:22px;display:flex;align-items:center;gap:8px}
+.brand svg{width:22px;height:22px}
+.top .sub{color:var(--muted);font-size:14px}
+main{flex:1;min-height:0;overflow-y:auto;padding:0 16px 16px}
+nav.tabs{display:flex;border-top:1px solid var(--line);background:var(--surface)}
+nav.tabs button{flex:1;border:0;background:none;padding:12px 4px 14px;color:var(--muted);font-weight:600;font-size:14px;display:flex;flex-direction:column;align-items:center;gap:4px;position:relative}
+nav.tabs button svg{width:22px;height:22px}
+nav.tabs button[aria-selected="true"]{color:var(--accent)}
+nav.tabs .dot{position:absolute;top:8px;left:calc(50% + 8px);min-width:18px;height:18px;border-radius:9px;background:var(--accent);color:var(--accent-ink);font-size:11px;display:grid;place-items:center;padding:0 5px}
+
+/* forms */
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px}
+label.f{display:block;font-weight:600;font-size:14px;margin:14px 0 6px}
+input[type=text],input[type=number],textarea,select{width:100%;padding:11px 12px;border-radius:10px;border:1px solid var(--line);background:var(--bg)}
+textarea{resize:vertical;min-height:84px}
+.hint{color:var(--muted);font-size:13px;margin-top:4px}
+.err{color:var(--warn);font-size:13px;margin-top:6px;min-height:18px}
+.row{display:flex;gap:10px}
+.row>*{flex:1;min-width:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{border:1px solid var(--line);background:var(--surface);border-radius:999px;padding:6px 12px;font-size:14px}
+button.chip[aria-pressed="true"]{background:var(--teal);color:#fff;border-color:var(--teal)}
+.chip.shared{border-color:var(--accent);color:var(--accent);font-weight:600}
+.btn{border:0;border-radius:12px;padding:12px 18px;font-weight:600;background:var(--accent);color:var(--accent-ink)}
+.btn.ghost{background:transparent;border:1px solid var(--line);color:var(--ink)}
+.btn.block{width:100%}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+
+/* discover */
+.filters{display:flex;align-items:center;gap:10px;margin-bottom:12px;font-size:14px;color:var(--muted);flex-wrap:wrap}
+.filters input{width:68px;padding:6px 8px}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:20px;overflow:hidden;box-shadow:0 8px 24px rgba(20,32,43,.08)}
+.card .photo{height:230px;position:relative;display:grid;place-items:center}
+.card .photo .initial{font-family:var(--display);font-weight:700;font-size:96px;color:rgba(255,255,255,.92)}
+.card .photo .score{position:absolute;top:12px;right:12px;background:rgba(0,0,0,.45);color:#fff;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}
+.card .photo .verified{position:absolute;top:12px;left:12px;background:rgba(255,255,255,.9);color:#14202b;border-radius:999px;padding:4px 10px;font-size:13px;font-weight:600}
+.card .body{padding:16px 18px 18px}
+.card h2{font-size:26px}
+.card .meta{color:var(--muted);font-size:14px;margin:2px 0 10px}
+.prompt{background:var(--bg);border-radius:12px;padding:12px 14px;margin:12px 0}
+.prompt b{display:block;font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--muted);margin-bottom:2px}
+.actions{display:flex;justify-content:center;gap:28px;margin:18px 0 6px}
+.round{width:64px;height:64px;border-radius:50%;border:1px solid var(--line);background:var(--surface);display:grid;place-items:center}
+.round svg{width:28px;height:28px}
+.round.pass{color:var(--muted)}
+.round.like{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.empty{text-align:center;padding:48px 16px;color:var(--muted)}
+.empty h2{color:var(--ink);margin-bottom:8px}
+
+/* matches + chat */
+.list{display:flex;flex-direction:column;gap:8px}
+.item{display:flex;gap:12px;align-items:center;padding:12px;background:var(--surface);border:1px solid var(--line);border-radius:14px;text-align:left;width:100%}
+.avatar{width:48px;height:48px;border-radius:50%;display:grid;place-items:center;color:#fff;font-family:var(--display);font-weight:700;font-size:20px;flex:none}
+.item .t{flex:1;min-width:0}
+.item .t b{display:block}
+.item .t span{display:block;color:var(--muted);font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat{display:flex;flex-direction:column;height:100%}
+.chat-head{display:flex;align-items:center;gap:10px;padding:0 0 12px}
+.chat-head .grow{flex:1;min-width:0}
+.iconbtn{border:1px solid var(--line);background:var(--surface);border-radius:10px;padding:8px 10px;font-size:14px}
+.msgs{flex:1;min-height:0;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0 12px}
+.bubble{max-width:80%;padding:9px 13px;border-radius:16px;background:var(--surface);border:1px solid var(--line);align-self:flex-start;overflow-wrap:anywhere}
+.bubble.me{align-self:flex-end;background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.bubble.sys{align-self:center;background:transparent;border:0;color:var(--muted);font-size:13px;text-align:center}
+.starters{display:flex;gap:8px;overflow-x:auto;padding-bottom:8px}
+.starters .chip{white-space:nowrap}
+.composer{display:flex;gap:8px;padding-top:8px}
+.composer input{flex:1}
+
+/* modal */
+.modal{position:absolute;inset:0;background:rgba(10,16,22,.6);display:grid;place-items:center;padding:20px;z-index:10}
+.modal .box{background:var(--surface);border-radius:20px;padding:24px;max-width:360px;width:100%;text-align:center}
+.modal .pair{display:flex;justify-content:center;gap:-10px;margin:14px 0}
+.modal .pair .avatar{width:72px;height:72px;font-size:30px;border:3px solid var(--surface)}
+.modal .pair .avatar+.avatar{margin-left:-14px}
+.modal .stack{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.note{font-size:13px;color:var(--muted);margin-top:12px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+@media (prefers-reduced-motion:no-preference){.card{animation:rise .25s ease-out}@keyframes rise{from{transform:translateY(8px);opacity:.4}to{transform:none;opacity:1}}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--accent)" aria-hidden="true"><path d="M12 21s-7-4.4-9.2-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.2 12C19 16.6 12 21 12 21z"/></svg>
+      Lantern
+    </div>
+    <div class="sub" id="topSub">Demo with fictional profiles</div>
+  </header>
+  <main id="main" tabindex="-1"></main>
+  <nav class="tabs" id="tabs" aria-label="Sections" hidden>
+    <button data-tab="discover" aria-selected="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/></svg>Discover</button>
+    <button data-tab="matches" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12a8 8 0 0 1-11.6 7.1L4 20l1-4.6A8 8 0 1 1 21 12z"/></svg>Matches<span class="dot" id="dot" hidden></span></button>
+    <button data-tab="profile" aria-selected="false"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>Profile</button>
+  </nav>
+</div>
+
+<script>
+(function(){
+"use strict";
+
+/* ---------- data (all profiles are fictional adults) ---------- */
+var INTERESTS=["Hiking","Coffee","Cooking","Live music","Board games","Photography","Running","Books","Travel","Art","Films","Yoga","Dogs","Cycling","Beach","Gaming"];
+var PEOPLE=[
+ {id:"amira",name:"Amira",age:27,km:3,hue:335,job:"Graphic designer",bio:"Brand designer who sketches on napkins. Always up for a long walk and a longer conversation.",prompt:["My ideal Friday","Gallery late opening, then street food and arguing about the best film of the year."],interests:["Art","Coffee","Films","Photography"],likesYou:true,replies:["Hey! Your profile made me smile. Do you have a favourite gallery?","Ha, same. I usually go to the Alserkal one on Thursdays.","Sounds like a plan. Coffee first, then we see where the afternoon goes?"]},
+ {id:"sofia",name:"Sofia",age:29,km:6,hue:20,job:"Pediatric nurse",bio:"Nights shifts, early hikes. I cook way too much food and need people to help me eat it.",prompt:["A thing I'm good at","Finding the best shawarma in any city within ten minutes of landing."],interests:["Hiking","Cooking","Travel","Dogs"],likesYou:false,replies:["Hi! Thanks for the message. Hiking person or more of a sunset-on-the-beach person?","Nice. I'm free Sunday morning if you want to try the wadi trail.","Bring water, I'll bring snacks. Deal."]},
+ {id:"noor",name:"Noor",age:25,km:9,hue:190,job:"Marine biology student",bio:"Diving, bad puns and board game nights. I will beat you at Catan and be very kind about it.",prompt:["Two truths and a lie","I've held a seahorse. I can't swim in a straight line. I've never seen Titanic."],interests:["Board games","Beach","Books","Gaming"],likesYou:true,replies:["Hello! I'm guessing the lie is Titanic. Am I right?","Ha, nope, that one's true. Do you play anything strategic?","Okay, game night it is. Friends welcome if you want company."]},
+ {id:"lena",name:"Lena",age:31,km:12,hue:150,job:"Product manager",bio:"Runner, reader, sourdough hobbyist. Looking for someone curious and kind.",prompt:["The way to win me over","Remember the small stuff, like how I take my coffee."],interests:["Running","Books","Coffee","Yoga"],likesYou:true,replies:["Hi there. Morning person or night owl? It matters more than people admit.","I run at 6. Don't worry, I'll slow down for coffee afterwards.","Great. Message me when you're up for it."]},
+ {id:"priya",name:"Priya",age:28,km:5,hue:280,job:"Sound engineer",bio:"I spend my weekends at gigs or in my kitchen making too many dumplings.",prompt:["Last concert I loved","A tiny jazz trio in a record shop. Nobody coughed for an hour."],interests:["Live music","Cooking","Films","Cycling"],likesYou:false,replies:["Hey! What was the last show you saw?","Oh nice, I haven't seen them live yet. Are they good?","Next time they play, let me know."]},
+ {id:"maya",name:"Maya",age:26,km:15,hue:50,job:"Architect",bio:"Cyclist and amateur potter. Fluent in sarcasm, learning Italian.",prompt:["Green flags I look for","People who ask follow-up questions and mean them."],interests:["Cycling","Art","Travel","Photography"],likesYou:false,replies:["Hi! Nice to hear from you. Where was your last trip?","That's on my list. Any tips?","Let's swap recommendations over a coffee sometime."]},
+ {id:"hana",name:"Hana",age:30,km:8,hue:240,job:"High school teacher",bio:"Teacher by day, terrible karaoke singer by night. Cat and dog household.",prompt:["Best way to spend a Sunday","Slow breakfast, a long walk with the dog, a nap I deny taking."],interests:["Dogs","Yoga","Books","Live music"],likesYou:true,replies:["Hello! What's your dog's name? You have one in your profile, right?","Love that. Mine would take that as a personal invitation to chaos.","Let's do a park walk and see if they get along."]},
+ {id:"elena",name:"Elena",age:24,km:20,hue:10,job:"Photojournalist",bio:"Travels light, edits late. Ask me about the worst bus ride of my life.",prompt:["Unpopular opinion","Airports are underrated places to meet people."],interests:["Photography","Travel","Films","Hiking"],likesYou:false,replies:["Hi! So, worst bus ride: 14 hours, one goat. Do you want the full story?","Right? Okay, you'll love this. Long story, short coffee?","Tell me a good time and I'll pick the spot."]}
+];
+
+/* ---------- state ---------- */
+var KEY="lantern-demo-v1";
+var S={me:null,seen:{},liked:{},matches:[],chats:{},blocked:{},unread:{},ageMin:18,ageMax:45,tab:"discover",openChat:null};
+function load(){try{var r=localStorage.getItem(KEY);if(r){var o=JSON.parse(r);for(var k in o){S[k]=o[k];}}}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S));}catch(e){}}
+load();S.openChat=null;
+
+/* ---------- helpers ---------- */
+var $=function(s,r){return (r||document).querySelector(s);};
+var main=$("#main");
+function esc(t){return String(t).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];});}
+function person(id){return PEOPLE.filter(function(p){return p.id===id;})[0];}
+function grad(h){return "linear-gradient(145deg,hsl("+h+",62%,52%),hsl("+((h+40)%360)+",58%,38%))";}
+function avatar(p){return '<span class="avatar" style="background:'+grad(p.hue)+'" aria-hidden="true">'+esc(p.name[0])+'</span>';}
+function shared(p){var mine=(S.me&&S.me.interests)||[];return p.interests.filter(function(i){return mine.indexOf(i)>-1;});}
+function score(p){var s=shared(p).length,mine=(S.me.interests||[]).length||1;var base=58+s*14+Math.min(8,Math.max(0,5-Math.abs(p.age-S.me.age)));return Math.min(98,Math.round(base));}
+function icon(n){var m={x:'<path d="M6 6l12 12M18 6L6 18"/>',heart:'<path d="M12 21s-7-4.4-9.2-9A5.2 5.2 0 0 1 12 6.6 5.2 5.2 0 0 1 21.2 12C19 16.6 12 21 12 21z"/>'};return '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">'+m[n]+'</svg>';}
+
+/* ---------- onboarding ---------- */
+function renderOnboarding(){
+  $("#tabs").hidden=true;
+  var picked=[];
+  main.innerHTML='<div class="panel" style="margin-top:4px"><h1 style="font-size:28px">Meet someone worth a second date</h1>'+
+  '<p style="color:var(--muted);margin:8px 0 0">Build a short profile. Matches are mutual: nobody can message you until you both say yes.</p>'+
+  '<label class="f" for="name">First name</label><input id="name" type="text" maxlength="30" autocomplete="given-name">'+
+  '<div class="row"><div><label class="f" for="age">Age</label><input id="age" type="number" min="18" max="99" inputmode="numeric"></div>'+
+  '<div><label class="f" for="city">City</label><input id="city" type="text" maxlength="40" value="Dubai"></div></div>'+
+  '<label class="f" for="bio">About you</label><textarea id="bio" maxlength="240" placeholder="What are you into? What is a good first date for you?"></textarea>'+
+  '<label class="f" id="intl">Pick 3 or more interests</label><div class="chips" id="ints" role="group" aria-labelledby="intl"></div>'+
+  '<label class="f" style="margin-top:18px"><input type="checkbox" id="adult" style="width:auto;margin-right:8px">I am 18 or older and will treat people with respect.</label>'+
+  '<div class="err" id="err" role="alert"></div>'+
+  '<button class="btn block" id="go">Start meeting people</button>'+
+  '<p class="note">All profiles in this demo are fictional. Nothing leaves your browser.</p></div>';
+  var box=$("#ints");
+  INTERESTS.forEach(function(i){var b=document.createElement("button");b.type="button";b.className="chip";b.textContent=i;b.setAttribute("aria-pressed","false");
+    b.onclick=function(){var on=b.getAttribute("aria-pressed")==="true";b.setAttribute("aria-pressed",on?"false":"true");if(on)picked.splice(picked.indexOf(i),1);else picked.push(i);};box.appendChild(b);});
+  $("#go").onclick=function(){
+    var name=$("#name").value.trim(),age=parseInt($("#age").value,10),err=$("#err");
+    if(!name){err.textContent="Enter your first name.";return;}
+    if(!(age>=18)){err.textContent="You must be 18 or older to use Lantern.";return;}
+    if(picked.length<3){err.textContent="Pick at least 3 interests so we can suggest better matches.";return;}
+    if(!$("#adult").checked){err.textContent="Confirm the checkbox to continue.";return;}
+    S.me={name:name,age:age,city:$("#city").value.trim()||"Dubai",bio:$("#bio").value.trim(),interests:picked.slice()};
+    S.ageMin=Math.max(18,age-8);S.ageMax=age+8;S.tab="discover";save();render();
+  };
+}
+
+/* ---------- discover ---------- */
+function deck(){return PEOPLE.filter(function(p){return !S.seen[p.id]&&!S.blocked[p.id]&&p.age>=S.ageMin&&p.age<=S.ageMax;}).sort(function(a,b){return score(b)-score(a);});}
+function renderDiscover(){
+  var d=deck(),p=d[0];
+  var f='<div class="filters"><span>Age</span><label class="sr" for="amin">Minimum age</label><input id="amin" type="number" min="18" max="99" value="'+S.ageMin+'"><span>to</span><label class="sr" for="amax">Maximum age</label><input id="amax" type="number" min="18" max="99" value="'+S.ageMax+'"><span>'+d.length+' to see</span></div>';
+  if(!p){main.innerHTML=f+'<div class="empty"><h2>You are all caught up</h2><p>Widen your age range or check back later. Your matches are waiting in the Matches tab.</p><button class="btn ghost" id="again">Review passed profiles again</button></div>';
+    $("#again").onclick=function(){S.seen={};S.liked=Object.keys(S.liked).reduce(function(a,k){a[k]=1;return a;},{});S.matches.forEach(function(m){S.seen[m]=1;});save();render();};
+  }else{
+    var sh=shared(p);
+    main.innerHTML=f+'<article class="card" aria-label="Profile of '+esc(p.name)+'"><div class="photo" style="background:'+grad(p.hue)+'"><span class="initial" aria-hidden="true">'+esc(p.name[0])+'</span><span class="verified">Photo verified</span><span class="score">'+score(p)+'% match</span></div>'+
+    '<div class="body"><h2>'+esc(p.name)+', '+p.age+'</h2><div class="meta">'+esc(p.job)+' · '+p.km+' km away</div><p style="margin:0">'+esc(p.bio)+'</p>'+
+    '<div class="prompt"><b>'+esc(p.prompt[0])+'</b>'+esc(p.prompt[1])+'</div>'+
+    '<div class="chips">'+p.interests.map(function(i){return '<span class="chip'+(sh.indexOf(i)>-1?' shared':'')+'">'+esc(i)+(sh.indexOf(i)>-1?' · shared':'')+'</span>';}).join("")+'</div></div></article>'+
+    '<div class="actions"><button class="round pass" id="pass" aria-label="Pass on '+esc(p.name)+'">'+icon("x")+'</button><button class="round like" id="like" aria-label="Like '+esc(p.name)+'">'+icon("heart")+'</button></div>'+
+    '<p class="note" style="text-align:center;margin-top:0">Keyboard: left arrow to pass, right arrow to like.</p>';
+    $("#pass").onclick=function(){act(p,false);};$("#like").onclick=function(){act(p,true);};
+  }
+  function upd(){var a=parseInt($("#amin").value,10),b=parseInt($("#amax").value,10);if(a>=18&&b>=a){S.ageMin=a;S.ageMax=b;save();renderDiscover();}}
+  $("#amin").onchange=upd;$("#amax").onchange=upd;
+}
+function act(p,like){
+  S.seen[p.id]=1;
+  if(like){S.liked[p.id]=1;if(p.likesYou&&S.matches.indexOf(p.id)<0){S.matches.push(p.id);S.chats[p.id]=[{sys:1,t:"You matched with "+p.name+". Say something kind and specific."}];save();showMatch(p);return;}}
+  save();renderDiscover();
+}
+function showMatch(p){
+  renderDiscover();
+  var m=document.createElement("div");m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-labelledby","mt");
+  m.innerHTML='<div class="box"><h2 id="mt" style="font-size:28px">It is a match</h2><div class="pair"><span class="avatar" style="background:'+grad(200)+'">'+esc(S.me.name[0])+'</span>'+avatar(p).replace('class="avatar"','class="avatar"')+'</div><p style="margin:0;color:var(--muted)">You and '+esc(p.name)+' liked each other.</p><div class="stack"><button class="btn" id="mmsg">Send a message</button><button class="btn ghost" id="mkeep">Keep browsing</button></div></div>';
+  $("#app").appendChild(m);$("#mmsg").focus();
+  $("#mkeep").onclick=function(){m.remove();updateDot();};
+  $("#mmsg").onclick=function(){m.remove();S.tab="matches";S.openChat=p.id;render();};
+  updateDot();
+}
+
+/* ---------- matches + chat ---------- */
+function renderMatches(){
+  if(S.openChat){return renderChat(S.openChat);}
+  if(!S.matches.length){main.innerHTML='<div class="empty"><h2>No matches yet</h2><p>Like a few profiles in Discover. When the feeling is mutual, the chat opens here.</p></div>';return;}
+  main.innerHTML='<h2 style="font-size:22px;margin:4px 0 12px">Your matches</h2><div class="list" id="list"></div>';
+  S.matches.slice().reverse().forEach(function(id){var p=person(id);if(!p||S.blocked[id])return;var c=S.chats[id]||[];var last=c.filter(function(x){return !x.sys;}).pop();
+    var b=document.createElement("button");b.className="item";b.innerHTML=avatar(p)+'<span class="t"><b>'+esc(p.name)+', '+p.age+'</b><span>'+(last?esc(last.t):"New match. Say hello.")+'</span></span>'+(S.unread[id]?'<span class="chip shared">New</span>':'');
+    b.onclick=function(){S.openChat=id;S.unread[id]=0;save();render();};$("#list").appendChild(b);});
+}
+function renderChat(id){
+  var p=person(id);
+  main.style.display="flex";main.style.flexDirection="column";
+  main.innerHTML='<div class="chat"><div class="chat-head"><button class="iconbtn" id="back" aria-label="Back to matches">Back</button><div class="grow" style="display:flex;gap:10px;align-items:center">'+avatar(p)+'<div><b>'+esc(p.name)+'</b><div class="hint" style="margin:0">'+esc(p.job)+'</div></div></div><button class="iconbtn" id="more">Safety</button></div>'+
+  '<div class="msgs" id="msgs" aria-live="polite"></div>'+
+  '<div class="starters" id="starters" aria-label="Conversation starters"></div>'+
+  '<form class="composer" id="form"><label class="sr" for="msg">Message</label><input id="msg" type="text" maxlength="500" autocomplete="off" placeholder="Write a message"><button class="btn" type="submit">Send</button></form></div>';
+  drawMsgs(id);
+  var starters=["I liked what you wrote about \""+p.prompt[0].toLowerCase()+"\". Tell me more?","What is the best thing you ate this week?","Coffee or a walk first, if we meet?"];
+  var st=$("#starters");if((S.chats[id]||[]).filter(function(x){return !x.sys;}).length===0){starters.forEach(function(t){var b=document.createElement("button");b.type="button";b.className="chip";b.textContent=t;b.onclick=function(){$("#msg").value=t;$("#msg").focus();};st.appendChild(b);});}else st.hidden=true;
+  $("#back").onclick=function(){S.openChat=null;main.style.display="";render();};
+  $("#more").onclick=function(){safety(p);};
+  $("#form").onsubmit=function(e){e.preventDefault();var v=$("#msg").value.trim();if(!v)return;send(p,v);};
+}
+function drawMsgs(id){
+  var box=$("#msgs");if(!box)return;box.innerHTML="";
+  (S.chats[id]||[]).forEach(function(m){var d=document.createElement("div");d.className="bubble"+(m.sys?" sys":m.me?" me":"");d.textContent=m.t;box.appendChild(d);});
+  box.scrollTop=box.scrollHeight;
+}
+function send(p,v){
+  var c=S.chats[p.id]=S.chats[p.id]||[];c.push({me:1,t:v});
+  var n=c.filter(function(x){return x.me;}).length;save();
+  var st=$("#starters");if(st)st.hidden=true;$("#msg").value="";drawMsgs(p.id);
+  var reply=p.replies[Math.min(n-1,p.replies.length-1)];
+  var typing=document.createElement("div");typing.className="bubble sys";typing.textContent=p.name+" is typing";$("#msgs").appendChild(typing);$("#msgs").scrollTop=$("#msgs").scrollHeight;
+  setTimeout(function(){c.push({t:reply});save();if(S.openChat===p.id&&S.tab==="matches")drawMsgs(p.id);else{S.unread[p.id]=1;updateDot();}},1100);
+}
+function safety(p){
+  var m=document.createElement("div");m.className="modal";m.setAttribute("role","dialog");m.setAttribute("aria-modal","true");m.setAttribute("aria-labelledby","st");
+  m.innerHTML='<div class="box" style="text-align:left"><h2 id="st" style="font-size:22px">Safety with '+esc(p.name)+'</h2><p class="hint">Unmatching removes the chat for both of you. Blocking also hides the profile for good. Reports go to a human reviewer in a real product.</p><div class="stack"><button class="btn ghost" id="sun">Unmatch</button><button class="btn ghost" id="sbl">Block</button><button class="btn ghost" id="srp">Report a problem</button><button class="btn" id="scl">Close</button></div><p class="note">Tips for a first date: meet in a public place, tell a friend where you are, and arrange your own transport.</p></div>';
+  $("#app").appendChild(m);$("#scl").focus();
+  $("#scl").onclick=function(){m.remove();};
+  function drop(block){S.matches=S.matches.filter(function(x){return x!==p.id;});delete S.chats[p.id];if(block)S.blocked[p.id]=1;S.openChat=null;main.style.display="";save();m.remove();render();}
+  $("#sun").onclick=function(){drop(false);};$("#sbl").onclick=function(){drop(true);};
+  $("#srp").onclick=function(){$("#srp").textContent="Report recorded in this demo. Block to stop contact.";$("#srp").disabled=true;};
+}
+
+/* ---------- profile ---------- */
+function renderProfile(){
+  var me=S.me;
+  main.innerHTML='<div class="panel"><div style="display:flex;gap:12px;align-items:center"><span class="avatar" style="background:'+grad(200)+';width:60px;height:60px;font-size:26px">'+esc(me.name[0])+'</span><div><h2 style="font-size:22px">'+esc(me.name)+', '+me.age+'</h2><div class="hint" style="margin:0">'+esc(me.city)+'</div></div></div>'+
+  '<label class="f" for="pbio">About you</label><textarea id="pbio" maxlength="240">'+esc(me.bio)+'</textarea>'+
+  '<label class="f" id="pil">Interests</label><div class="chips" id="pints" role="group" aria-labelledby="pil"></div>'+
+  '<div class="err" id="perr" role="alert"></div><button class="btn block" id="psave">Save changes</button></div>'+
+  '<div class="panel" style="margin-top:12px"><h3 style="font-size:17px">Your privacy and safety</h3><p class="hint">Only mutual matches can message you. Everything here is stored in this browser only. Delete it any time.</p><button class="btn ghost block" id="reset">Delete my data and start over</button></div>';
+  var pick=me.interests.slice();
+  INTERESTS.forEach(function(i){var b=document.createElement("button");b.type="button";b.className="chip";b.textContent=i;b.setAttribute("aria-pressed",pick.indexOf(i)>-1?"true":"false");
+    b.onclick=function(){var k=pick.indexOf(i);if(k>-1)pick.splice(k,1);else pick.push(i);b.setAttribute("aria-pressed",k>-1?"false":"true");};$("#pints").appendChild(b);});
+  $("#psave").onclick=function(){if(pick.length<3){$("#perr").textContent="Keep at least 3 interests.";return;}me.bio=$("#pbio").value.trim();me.interests=pick;save();$("#perr").style.color="var(--good)";$("#perr").textContent="Saved.";};
+  $("#reset").onclick=function(){try{localStorage.removeItem(KEY);}catch(e){}S={me:null,seen:{},liked:{},matches:[],chats:{},blocked:{},unread:{},ageMin:18,ageMax:45,tab:"discover",openChat:null};render();};
+}
+
+/* ---------- shell ---------- */
+function updateDot(){var n=Object.keys(S.unread).filter(function(k){return S.unread[k];}).length;var d=$("#dot");d.hidden=!n;d.textContent=n;}
+function render(){
+  main.style.display="";
+  if(!S.me){renderOnboarding();return;}
+  $("#tabs").hidden=false;
+  document.querySelectorAll("#tabs button").forEach(function(b){b.setAttribute("aria-selected",b.dataset.tab===S.tab?"true":"false");});
+  if(S.tab==="discover")renderDiscover();else if(S.tab==="matches")renderMatches();else renderProfile();
+  updateDot();
+}
+document.querySelectorAll("#tabs button").forEach(function(b){b.onclick=function(){S.tab=b.dataset.tab;if(S.tab!=="matches")S.openChat=null;render();};});
+document.addEventListener("keydown",function(e){
+  if(!S.me||S.tab!=="discover"||document.querySelector(".modal"))return;
+  var t=e.target.tagName;if(t==="INPUT"||t==="TEXTAREA"||t==="SELECT")return;
+  var p=deck()[0];if(!p)return;
+  if(e.key==="ArrowRight")act(p,true);else if(e.key==="ArrowLeft")act(p,false);
+});
+render();
+})();
+</script>
+</body>
+</html>
